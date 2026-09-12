@@ -202,18 +202,30 @@
 
         // 서버 환경변수(TYPEBOT_ID)가 설정되어 있거나, 브라우저 localStorage에 저장된 ID가 있으면 버블 실행
         const envTypebot = "{{ get_typebot_id() }}";
-        const savedTypebot = envTypebot || localStorage.getItem('typebot_id');
+        let savedTypebot = (envTypebot || localStorage.getItem('typebot_id') || '').trim();
+
         if (savedTypebot) {
-            Typebot.initBubble({
-                typebot: savedTypebot,
-                theme: {
-                    button: { backgroundColor: "#0d9488", iconColor: "#FFFFFF" },
-                    previewMessage: {
-                        message: "도움이 필요하신가요? 안심 상담 챗봇과 대화해보세요.",
-                        autoShowDelay: 5000,
+            // URL 전체가 들어온 경우 ID/Slug만 깔끔하게 추출
+            savedTypebot = savedTypebot.replace(/^https?:\/\/typebot\.co\//, '')
+                                       .replace(/^https?:\/\/app\.typebot\.com\/typebots\//, '')
+                                       .replace(/\/edit$/, '')
+                                       .replace(/\/$/, '');
+
+            try {
+                Typebot.initBubble({
+                    typebot: savedTypebot,
+                    apiHost: "https://typebot.co",
+                    theme: {
+                        button: { backgroundColor: "#0d9488", iconColor: "#FFFFFF" },
+                        previewMessage: {
+                            message: "도움이 필요하신가요? 안심 상담 챗봇과 대화해보세요.",
+                            autoShowDelay: 4000,
+                        }
                     }
-                }
-            });
+                });
+            } catch (err) {
+                console.error("Typebot 초기화 오류:", err);
+            }
         }
     </script>
     {% block extra_scripts %}{% endblock %}
