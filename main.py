@@ -52,6 +52,10 @@ def get_all_active_counselors():
 # ----------------- 페이지 라우트 -----------------
 
 @app.get("/", response_class=HTMLResponse)
+@app.get("/api", response_class=HTMLResponse)
+@app.get("/api/", response_class=HTMLResponse)
+@app.get("/api/index", response_class=HTMLResponse)
+@app.get("/api/index.py", response_class=HTMLResponse)
 async def dashboard_page(request: Request):
     user = get_current_counselor(request)
     all_users = get_all_active_counselors()
