@@ -22,6 +22,7 @@ app = FastAPI(title="가정폭력 상담소 관리 시스템")
 app.mount("/static", StaticFiles(directory=str(BASE_DIR / "static")), name="static")
 templates = Jinja2Templates(directory=str(BASE_DIR / "templates"))
 templates.env.globals["get_db_status"] = get_db_status_info
+templates.env.globals["get_typebot_id"] = lambda: os.environ.get("TYPEBOT_ID", "")
 
 # 서버 시작 시 DB 초기화
 @app.on_event("startup")

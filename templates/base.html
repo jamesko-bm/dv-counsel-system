@@ -200,8 +200,9 @@
     <script type="module">
         import Typebot from 'https://cdn.jsdelivr.net/npm/@typebot.io/js@0.3/dist/web.js';
 
-        // localStorage에 저장된 Typebot ID가 있거나 환경변수/글로벌 설정된 ID가 있으면 버블 위젯 실행
-        const savedTypebot = localStorage.getItem('typebot_id') || window.TYPEBOT_ID;
+        // 서버 환경변수(TYPEBOT_ID)가 설정되어 있거나, 브라우저 localStorage에 저장된 ID가 있으면 버블 실행
+        const envTypebot = "{{ get_typebot_id() }}";
+        const savedTypebot = envTypebot || localStorage.getItem('typebot_id');
         if (savedTypebot) {
             Typebot.initBubble({
                 typebot: savedTypebot,
