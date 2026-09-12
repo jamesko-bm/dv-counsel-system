@@ -1,0 +1,104 @@
+/* 가정폭력 상담소 관리 시스템 전용 스타일 */
+
+/* 폰트 및 부드러운 스크롤 */
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+
+body {
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif;
+    background-color: #f8fafc;
+    color: #1e293b;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* 스크롤바 미려화 */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+::-webkit-scrollbar-track {
+    background: #f1f5f9;
+}
+::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+}
+
+/* 모달 애니메이션 */
+.modal-backdrop {
+    transition: opacity 0.2s ease-in-out;
+}
+.modal-content {
+    transition: transform 0.2s ease-in-out, opacity 0.2s ease-in-out;
+}
+
+/* 뱃지 반짝임 (고위험 긴급 알림) */
+@keyframes pulse-danger {
+    0%, 100% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.85;
+        transform: scale(1.05);
+    }
+}
+.pulse-badge {
+    animation: pulse-danger 2s infinite ease-in-out;
+}
+
+/* 토스트 알림 컨테이너 */
+#toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    pointer-events: none;
+}
+.toast-msg {
+    pointer-events: auto;
+    min-width: 280px;
+    max-width: 400px;
+    padding: 14px 18px;
+    border-radius: 8px;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    font-size: 0.925rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateX(100%);
+    opacity: 0;
+}
+.toast-msg.show {
+    transform: translateX(0);
+    opacity: 1;
+}
+
+/* 업무일지 및 상담기록 출력(인쇄) 최적화 */
+@media print {
+    body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        font-size: 11pt;
+    }
+    .no-print, nav, aside, header, button, .modal, #toast-container {
+        display: none !important;
+    }
+    .print-container {
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        border: none !important;
+        box-shadow: none !important;
+    }
+    .page-break {
+        page-break-after: always;
+    }
+}

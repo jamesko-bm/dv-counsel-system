@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}가정폭력 상담소 관리 시스템{% endblock %}</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        brand: {
+                            50: '#f0fdfa',
+                            100: '#ccfbf1',
+                            500: '#14b8a6',
+                            600: '#0d9488',
+                            700: '#0f766e',
+                            800: '#115e59',
+                            900: '#134e4a',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="/static/css/style.css">
+    {% block extra_head %}{% endblock %}
+</head>
+<body class="bg-slate-50 min-h-screen flex flex-col font-sans text-slate-800">
+
+    <!-- 상단 네비게이션 헤더 -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-xs">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- 로고 및 센터 이름 -->
+                <div class="flex items-center gap-3">
+                    <a href="/" class="flex items-center gap-2 text-brand-700 hover:text-brand-800 font-bold text-lg tracking-tight">
+                        <div class="w-9 h-9 rounded-lg bg-brand-600 text-white flex items-center justify-center shadow-sm">
+                            <i data-lucide="shield-check" class="w-5 h-5"></i>
+                        </div>
+                        <span class="hidden sm:inline">희망가정폭력상담소</span>
+                        <span class="text-xs px-2 py-0.5 rounded-md bg-brand-50 text-brand-700 border border-brand-200 font-medium">관리시스템</span>
+                    </a>
+                    {% set db_info = get_db_status() %}
+                    <span class="hidden lg:inline-flex items-center gap-1.5 text-[11px] px-2.5 py-0.5 rounded-full border {{ db_info.badge_class }} font-semibold shadow-2xs" title="현재 연결된 데이터베이스 저장소입니다. 재실행해도 데이터가 보존됩니다.">
+                        <span class="w-1.5 h-1.5 rounded-full {% if db_info.is_cloud %}bg-emerald-500 animate-pulse{% else %}bg-blue-500{% endif %}"></span>
+                        <span>{{ db_info.name }}</span>
+                    </span>
+                </div>
+
+                <!-- 중앙 메인 5대 메뉴 내비게이션 -->
+                <nav class="hidden md:flex items-center gap-1">
+                    <a href="/" class="px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 {% if active_menu == 'dashboard' %}bg-brand-50 text-brand-700 font-semibold{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}">
+                        <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+                        <span>대시보드</span>
+                    </a>
+                    <a href="/calls" class="px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 {% if active_menu == 'calls' %}bg-brand-50 text-brand-700 font-semibold{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}">
+                        <i data-lucide="phone-call" class="w-4 h-4"></i>
+                        <span>1. 전화 상담기록</span>
+                    </a>
+                    <a href="/leaves" class="px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 {% if active_menu == 'leaves' %}bg-brand-50 text-brand-700 font-semibold{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}">
+                        <i data-lucide="calendar-off" class="w-4 h-4"></i>
+                        <span>2. 휴가 신청</span>
+                    </a>
+                    <a href="/counselors" class="px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 {% if active_menu == 'counselors' %}bg-brand-50 text-brand-700 font-semibold{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}">
+                        <i data-lucide="users" class="w-4 h-4"></i>
+                        <span>3. 상담사 관리</span>
+                    </a>
+                    <a href="/worklogs" class="px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 {% if active_menu == 'worklogs' %}bg-brand-50 text-brand-700 font-semibold{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}">
+                        <i data-lucide="file-text" class="w-4 h-4"></i>
+                        <span>4. 업무일지</span>
+                    </a>
+                    <a href="/mypage" class="px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 {% if active_menu == 'mypage' %}bg-brand-50 text-brand-700 font-semibold{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}">
+                        <i data-lucide="user-check" class="w-4 h-4"></i>
+                        <span>5. 마이페이지</span>
+                    </a>
+                </nav>
+
+                <!-- 우측 사용자 정보 & 빠른 상담사 전환 셀렉터 -->
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <!-- Typebot 연동 설정 버튼 -->
+                    <button onclick="openModal('typebot-config-modal')" class="px-2.5 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 text-xs font-semibold flex items-center gap-1.5 transition-colors shadow-2xs" title="Typebot 챗봇 연동 설정">
+                        <i data-lucide="bot" class="w-4 h-4 text-brand-600"></i>
+                        <span class="hidden sm:inline">챗봇 연동</span>
+                    </button>
+
+                    <div class="flex items-center gap-2 bg-slate-100 rounded-lg p-1 text-xs border border-slate-200">
+                        <span class="text-slate-500 font-medium pl-2 hidden lg:inline">로그인 계정:</span>
+                        <select onchange="switchCounselor(this.value)" class="bg-white text-slate-800 font-semibold py-1 px-2.5 rounded border border-slate-300 focus:outline-none focus:ring-1 focus:ring-brand-500 cursor-pointer">
+                            {% for u in all_users %}
+                            <option value="{{ u.id }}" {% if user and user.id == u.id %}selected{% endif %}>
+                                {{ u.name }} ({{ u.title }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <a href="/mypage" class="w-8 h-8 rounded-full bg-brand-100 text-brand-800 flex items-center justify-center font-bold text-xs hover:ring-2 hover:ring-brand-500 transition-all" title="마이페이지">
+                        {{ user.name[:1] if user else '상' }}
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- 모바일 탭 메뉴 -->
+        <div class="md:hidden flex overflow-x-auto border-t border-slate-200 px-2 py-1.5 bg-slate-50 gap-1 scrollbar-none">
+            <a href="/" class="shrink-0 px-2.5 py-1 text-xs font-medium rounded {% if active_menu == 'dashboard' %}bg-brand-600 text-white{% else %}text-slate-600{% endif %}">대시보드</a>
+            <a href="/calls" class="shrink-0 px-2.5 py-1 text-xs font-medium rounded {% if active_menu == 'calls' %}bg-brand-600 text-white{% else %}text-slate-600{% endif %}">1.전화상담</a>
+            <a href="/leaves" class="shrink-0 px-2.5 py-1 text-xs font-medium rounded {% if active_menu == 'leaves' %}bg-brand-600 text-white{% else %}text-slate-600{% endif %}">2.휴가신청</a>
+            <a href="/counselors" class="shrink-0 px-2.5 py-1 text-xs font-medium rounded {% if active_menu == 'counselors' %}bg-brand-600 text-white{% else %}text-slate-600{% endif %}">3.상담사관리</a>
+            <a href="/worklogs" class="shrink-0 px-2.5 py-1 text-xs font-medium rounded {% if active_menu == 'worklogs' %}bg-brand-600 text-white{% else %}text-slate-600{% endif %}">4.업무일지</a>
+            <a href="/mypage" class="shrink-0 px-2.5 py-1 text-xs font-medium rounded {% if active_menu == 'mypage' %}bg-brand-600 text-white{% else %}text-slate-600{% endif %}">5.마이페이지</a>
+        </div>
+    </header>
+
+    <!-- 메인 컨텐츠 영역 -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Typebot 연동 설정 모달 -->
+    <div id="typebot-config-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto no-print">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+                <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="bot" class="w-5 h-5 text-brand-600"></i>
+                    Typebot 챗봇 연동 설정
+                </h3>
+                <button type="button" onclick="closeModal('typebot-config-modal')" class="text-slate-400 hover:text-slate-600 text-lg">&times;</button>
+            </div>
+
+            <div class="mt-4 space-y-4 text-xs">
+                <!-- 1. 플로팅 챗봇 위젯 설정 -->
+                <div class="p-3.5 bg-brand-50/50 rounded-xl border border-brand-200/70 space-y-2">
+                    <span class="font-bold text-brand-900 flex items-center gap-1.5">
+                        <i data-lucide="message-square" class="w-4 h-4 text-brand-600"></i>
+                        1. 화면 우측 하단 챗봇 버블 띄우기
+                    </span>
+                    <p class="text-slate-600 leading-relaxed">
+                        <a href="https://typebot.io" target="_blank" class="text-brand-700 underline font-semibold">Typebot.io</a>에서 생성한 봇의 <strong>Slug(이름 또는 ID)</strong>를 입력하세요.
+                    </p>
+                    <div class="flex gap-2 mt-2">
+                        <input type="text" id="typebot-id-input" placeholder="예: my-dv-counsel-bot" class="flex-1 px-3 py-2 border border-slate-300 rounded-lg text-xs bg-white">
+                        <button type="button" onclick="saveTypebotId()" class="px-3 py-2 bg-brand-600 hover:bg-brand-700 text-white rounded-lg font-semibold transition-colors shrink-0">
+                            적용
+                        </button>
+                        <button type="button" onclick="removeTypebotId()" class="px-2.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors shrink-0">
+                            제거
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 2. 웹훅(Webhook) 실시간 DB 자동 저장 안내 -->
+                <div class="p-3.5 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
+                    <span class="font-bold text-slate-800 flex items-center gap-1.5">
+                        <i data-lucide="webhook" class="w-4 h-4 text-indigo-600"></i>
+                        2. 챗봇 상담 내역 자동 DB 저장 (Webhook)
+                    </span>
+                    <p class="text-slate-600 leading-relaxed">
+                        Typebot 플로우 마지막에 <strong>Webhook</strong> 블록을 추가하여 아래 주소로 <code>POST</code> 요청을 보내면, 챗봇 접수 내역이 <strong>1. 전화상담기록</strong>에 실시간 자동 등록됩니다.
+                    </p>
+                    <div class="p-2 bg-white rounded-lg border border-slate-300 font-mono text-[11px] text-indigo-700 break-all select-all">
+                        <span id="webhook-url-text">/api/webhook/typebot</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-4 mt-4 border-t border-slate-200">
+                <button type="button" onclick="closeModal('typebot-config-modal')" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg font-semibold text-xs">
+                    닫기
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 푸터 -->
+    <footer class="bg-white border-t border-slate-200 py-4 mt-auto no-print">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
+            <p>© 2026 희망가정폭력상담소 관리 시스템 (Domestic Violence Counseling Management System)</p>
+            <div class="flex items-center gap-4">
+                <span>긴급 여성긴급전화: <strong>1366</strong></span>
+                <span>경찰 긴급신고: <strong>112</strong></span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- 자바스크립트 및 아이콘 초기화 -->
+    <script src="/static/js/app.js"></script>
+    <script>
+        lucide.createIcons();
+    </script>
+
+    <!-- Typebot 챗봇 버블 연동 스크립트 -->
+    <script type="module">
+        import Typebot from 'https://cdn.jsdelivr.net/npm/@typebot.io/js@0.3/dist/web.js';
+
+        // localStorage에 저장된 Typebot ID가 있거나 환경변수/글로벌 설정된 ID가 있으면 버블 위젯 실행
+        const savedTypebot = localStorage.getItem('typebot_id') || window.TYPEBOT_ID;
+        if (savedTypebot) {
+            Typebot.initBubble({
+                typebot: savedTypebot,
+                theme: {
+                    button: { backgroundColor: "#0d9488", iconColor: "#FFFFFF" },
+                    previewMessage: {
+                        message: "도움이 필요하신가요? 안심 상담 챗봇과 대화해보세요.",
+                        autoShowDelay: 5000,
+                    }
+                }
+            });
+        }
+    </script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+
+{% block title %}휴가 신청 및 결재 - 희망가정폭력상담소{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- 상단 헤더 -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="w-2.5 h-6 bg-teal-600 rounded-full"></span>
+                <h1 class="text-xl font-bold text-slate-900">2. 휴가 신청 및 결재 관리</h1>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">
+                상담사 휴가(연차/반차/병가 등) 신청 및 업무 대행 지정, 센터 결재 현황을 확인합니다.
+            </p>
+        </div>
+        <button onclick="openModal('leave-modal')" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-all">
+            <i data-lucide="calendar-plus" class="w-4 h-4"></i>
+            <span>새 휴가 신청하기</span>
+        </button>
+    </div>
+
+    <!-- 개인 연차 잔여 현황 카드 -->
+    <div class="bg-gradient-to-r from-teal-700 to-slate-800 rounded-2xl p-5 text-white shadow-xs">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+                <div class="flex items-center gap-2 mb-1">
+                    <span class="text-xs px-2 py-0.5 rounded bg-teal-600/50 text-teal-100 font-semibold border border-teal-500/40">
+                        {{ user.name }} ({{ user.title }})
+                    </span>
+                    <span class="text-xs text-teal-200">2026년도 연차 관리</span>
+                </div>
+                <h3 class="text-lg font-bold">내 연차 사용 현황</h3>
+            </div>
+            <div class="flex items-center gap-6">
+                <div class="text-center">
+                    <p class="text-xs text-teal-200">총 부여 연차</p>
+                    <p class="text-2xl font-black mt-0.5">{{ user.annual_leave_total }}<span class="text-xs font-normal ml-0.5">일</span></p>
+                </div>
+                <div class="h-8 w-px bg-teal-500/30"></div>
+                <div class="text-center">
+                    <p class="text-xs text-teal-200">사용 연차</p>
+                    <p class="text-2xl font-black mt-0.5 text-amber-300">{{ user.annual_leave_used }}<span class="text-xs font-normal ml-0.5">일</span></p>
+                </div>
+                <div class="h-8 w-px bg-teal-500/30"></div>
+                <div class="text-center">
+                    <p class="text-xs text-teal-200">잔여 연차</p>
+                    <p class="text-2xl font-black mt-0.5 text-emerald-300">{{ user.annual_leave_total - user.annual_leave_used }}<span class="text-xs font-normal ml-0.5">일</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 휴가 신청 및 결재 목록 -->
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+        <div class="p-4 border-b border-slate-200 flex items-center justify-between">
+            <div>
+                <h2 class="text-sm font-bold text-slate-800 flex items-center gap-2">
+                    <i data-lucide="list-checks" class="w-4 h-4 text-brand-600"></i>
+                    상담사 휴가 신청 및 결재 목록
+                </h2>
+                <p class="text-xs text-slate-500 mt-0.5">대기 중인 건은 관리자/소장이 승인 또는 반려할 수 있습니다.</p>
+            </div>
+            <span class="text-xs text-slate-400">총 {{ leave_requests|length }}건</span>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider">
+                    <tr>
+                        <th class="px-4 py-3">신청자</th>
+                        <th class="px-4 py-3">휴가 종류</th>
+                        <th class="px-4 py-3">신청 기간</th>
+                        <th class="px-4 py-3">일수</th>
+                        <th class="px-4 py-3">사유</th>
+                        <th class="px-4 py-3">업무 대행자</th>
+                        <th class="px-4 py-3">결재 상태</th>
+                        <th class="px-4 py-3">결재자 / 일시</th>
+                        <th class="px-4 py-3 text-right">처리 / 관리</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for l in leave_requests %}
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <span class="font-bold text-slate-900">{{ l.counselor_name }}</span>
+                            <span class="text-[11px] text-slate-500 block">{{ l.counselor_title }}</span>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <span class="px-2 py-0.5 rounded bg-brand-50 text-brand-700 font-semibold border border-brand-200">
+                                {{ l.leave_type }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap font-medium text-slate-800">
+                            {{ l.start_date }} ~ {{ l.end_date }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap font-bold text-slate-900">
+                            {{ l.days_count }}일
+                        </td>
+                        <td class="px-4 py-3 text-slate-700 max-w-xs">
+                            <p class="truncate" title="{{ l.reason }}">{{ l.reason }}</p>
+                            {% if l.reject_reason %}
+                            <p class="text-[11px] text-rose-600 mt-0.5">반려사유: {{ l.reject_reason }}</p>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-slate-600">
+                            {{ l.deputy_name or '미지정' }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            {% if l.status == 'PENDING' %}
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800 border border-amber-300 flex items-center gap-1 w-fit">
+                                <span class="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse"></span> 결재대기
+                            </span>
+                            {% elif l.status == 'APPROVED' %}
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                                승인완료
+                            </span>
+                            {% else %}
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-100 text-rose-800 border border-rose-300">
+                                반려됨
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-slate-500">
+                            {% if l.approver_name %}
+                            <span>{{ l.approver_name }}</span>
+                            <span class="text-[11px] text-slate-400 block">{{ l.approved_at or '' }}</span>
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 text-right whitespace-nowrap">
+                            {% if l.status == 'PENDING' %}
+                                <!-- 관리자/소장이거나 선임인 경우 승인/반려 가능 -->
+                                {% if user.role in ['DIRECTOR', 'SENIOR'] %}
+                                <div class="inline-flex gap-1.5">
+                                    <button onclick="processLeave({{ l.id }}, 'APPROVED')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded font-semibold text-xs shadow-2xs">
+                                        승인
+                                    </button>
+                                    <button onclick="processLeave({{ l.id }}, 'REJECTED')" class="px-2.5 py-1 bg-rose-600 hover:bg-rose-700 text-white rounded font-semibold text-xs shadow-2xs">
+                                        반려
+                                    </button>
+                                </div>
+                                {% elif user.id == l.counselor_id %}
+                                <button onclick="cancelLeave({{ l.id }})" class="text-rose-600 hover:underline">
+                                    취소
+                                </button>
+                                {% endif %}
+                            {% else %}
+                                {% if user.role in ['DIRECTOR', 'SENIOR'] or user.id == l.counselor_id %}
+                                <button onclick="cancelLeave({{ l.id }})" class="p-1 text-slate-400 hover:text-rose-600" title="내역 삭제">
+                                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                </button>
+                                {% endif %}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="9" class="px-4 py-12 text-center text-slate-400">
+                            등록된 휴가 신청 내역이 없습니다.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 휴가 신청 모달 -->
+<div id="leave-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <i data-lucide="calendar-plus" class="w-5 h-5 text-brand-600"></i>
+                휴가 신청서 작성
+            </h3>
+            <button type="button" onclick="closeModal('leave-modal')" class="text-slate-400 hover:text-slate-600 text-lg">&times;</button>
+        </div>
+
+        <form onsubmit="submitLeaveRequest(event)" class="mt-4 space-y-4 text-xs">
+            <!-- 신청자 및 잔여 연차 안내 -->
+            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between">
+                <div>
+                    <span class="text-slate-500">신청 상담사:</span>
+                    <strong class="text-slate-800 ml-1">{{ user.name }} ({{ user.title }})</strong>
+                </div>
+                <div>
+                    <span class="text-slate-500">현재 잔여 연차:</span>
+                    <strong class="text-teal-700 ml-1 font-bold">{{ user.annual_leave_total - user.annual_leave_used }}일</strong>
+                </div>
+            </div>
+
+            <!-- 휴가 종류 -->
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">휴가 종류 <span class="text-rose-500">*</span></label>
+                <select name="leave_type" id="leave_type" required class="w-full px-3 py-2 border border-slate-300 rounded-lg font-medium" onchange="handleLeaveTypeChange(this.value)">
+                    <option value="연차">연차 (종일)</option>
+                    <option value="오전반차">오전반차 (0.5일)</option>
+                    <option value="오후반차">오후반차 (0.5일)</option>
+                    <option value="병가">병가</option>
+                    <option value="경조사">경조사 휴가</option>
+                    <option value="대체휴가">대체휴가</option>
+                    <option value="공가">공가 (법정의무 등)</option>
+                </select>
+            </div>
+
+            <!-- 기간 및 일수 -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">시작일자 <span class="text-rose-500">*</span></label>
+                    <input type="date" name="start_date" id="start_date" required class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">종료일자 <span class="text-rose-500">*</span></label>
+                    <input type="date" name="end_date" id="end_date" required class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">차감/신청 일수</label>
+                    <input type="number" step="0.5" min="0.5" name="days_count" id="days_count" value="1.0" required class="w-full px-3 py-2 border border-slate-300 rounded-lg font-bold text-slate-800">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">업무 대행자</label>
+                    <select name="deputy_counselor_id" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                        <option value="">대행자 선택 없음</option>
+                        {% for u in all_users %}
+                        {% if u.id != user.id %}
+                        <option value="{{ u.id }}">{{ u.name }} ({{ u.title }})</option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- 사유 -->
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">휴가 사유 <span class="text-rose-500">*</span></label>
+                <textarea name="reason" rows="3" required placeholder="구체적인 사유를 입력하세요. (예: 개인 건강검진, 가족 경조사 참석, 재충전 등)" class="w-full px-3 py-2 border border-slate-300 rounded-lg"></textarea>
+            </div>
+
+            <!-- 버튼 바 -->
+            <div class="flex justify-end gap-2 pt-3 border-t border-slate-200">
+                <button type="button" onclick="closeModal('leave-modal')" class="px-4 py-2 border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-50">취소</button>
+                <button type="submit" class="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm">신청서 제출</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function handleLeaveTypeChange(type) {
+        const daysInput = document.getElementById('days_count');
+        if (type.includes('반차')) {
+            daysInput.value = '0.5';
+            const startDate = document.getElementById('start_date').value;
+            if (startDate) document.getElementById('end_date').value = startDate;
+        } else if (daysInput.value === '0.5') {
+            daysInput.value = '1.0';
+        }
+    }
+
+    document.addEventListener("DOMContentLoaded", function() {
+        const today = new Date().toISOString().split('T')[0];
+        const s = document.getElementById('start_date');
+        const e = document.getElementById('end_date');
+        if (s && !s.value) s.value = today;
+        if (e && !e.value) e.value = today;
+    });
+</script>
+{% endblock %}

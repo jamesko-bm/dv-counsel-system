@@ -1,0 +1,239 @@
+{% extends "base.html" %}
+
+{% block title %}상담사 관리 - 희망가정폭력상담소{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- 상단 헤더 -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="w-2.5 h-6 bg-indigo-600 rounded-full"></span>
+                <h1 class="text-xl font-bold text-slate-900">3. 상담사 및 직원 관리</h1>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">
+                상담소 인력 현황, 직급 및 권한 등급, 전문 상담 분야, 연차 및 담당 배정 업무를 관리합니다.
+            </p>
+        </div>
+        <button onclick="openNewCounselorModal()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-all">
+            <i data-lucide="user-plus" class="w-4 h-4"></i>
+            <span>신규 상담사 등록</span>
+        </button>
+    </div>
+
+    <!-- 상담사 카드 그리드 뷰 -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {% for c in counselors %}
+        <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col justify-between hover:border-indigo-300 transition-colors">
+            <div>
+                <!-- 상단 프로필 요약 -->
+                <div class="flex items-start justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-12 h-12 rounded-xl {% if c.role == 'DIRECTOR' %}bg-purple-100 text-purple-700{% elif c.role == 'SENIOR' %}bg-indigo-100 text-indigo-700{% else %}bg-teal-100 text-teal-700{% endif %} flex items-center justify-center font-bold text-base shadow-xs">
+                            {{ c.name[:1] }}
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-1.5">
+                                <h3 class="font-bold text-slate-900 text-sm">{{ c.name }}</h3>
+                                <span class="text-xs text-slate-500">{{ c.title }}</span>
+                            </div>
+                            <span class="inline-block mt-0.5 px-2 py-0.2 rounded text-[10px] font-semibold 
+                                {% if c.role == 'DIRECTOR' %}bg-purple-50 text-purple-700 border border-purple-200
+                                {% elif c.role == 'SENIOR' %}bg-indigo-50 text-indigo-700 border border-indigo-200
+                                {% else %}bg-slate-100 text-slate-600 border border-slate-200{% endif %}">
+                                {% if c.role == 'DIRECTOR' %}소장/최고관리자{% elif c.role == 'SENIOR' %}선임상담사{% elif c.role == 'COUNSELOR' %}전문상담사{% else %}인턴/수련생{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 전문 분야 -->
+                <div class="mt-4">
+                    <p class="text-[11px] font-semibold text-slate-400 mb-1">전문 상담 분야</p>
+                    <div class="flex flex-wrap gap-1">
+                        {% for spec in (c.specialties or '일반 상담').split(',') %}
+                        <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 text-[11px] font-medium">
+                            {{ spec.strip() }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- 연락처 정보 -->
+                <div class="mt-4 pt-3 border-t border-slate-100 space-y-1.5 text-xs text-slate-600">
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="phone" class="w-3.5 h-3.5 text-slate-400"></i>
+                        <span>{{ c.phone or '연락처 미등록' }}</span>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <i data-lucide="mail" class="w-3.5 h-3.5 text-slate-400"></i>
+                        <span class="truncate">{{ c.email or '이메일 미등록' }}</span>
+                    </div>
+                </div>
+
+                <!-- 업무 및 연차 지표 -->
+                <div class="mt-4 grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-center text-xs">
+                    <div>
+                        <p class="text-slate-400 text-[11px]">배정 상담</p>
+                        <p class="font-bold text-slate-800 mt-0.5">{{ c.assigned_calls_count }}건</p>
+                    </div>
+                    <div>
+                        <p class="text-slate-400 text-[11px]">잔여 연차</p>
+                        <p class="font-bold text-emerald-600 mt-0.5">{{ c.annual_leave_total - c.annual_leave_used }}일</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 하단 액션 버튼 -->
+            <div class="mt-4 pt-3 border-t border-slate-100 flex gap-2">
+                <button onclick='openEditCounselorModal({{ c|tojson }})' class="flex-1 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition-colors text-center">
+                    정보 수정
+                </button>
+                <button onclick="switchCounselor({{ c.id }})" class="px-3 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-700 rounded-lg text-xs font-semibold transition-colors" title="이 계정으로 전환">
+                    전환
+                </button>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- 상세 테이블 뷰 -->
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+        <div class="p-4 border-b border-slate-200">
+            <h2 class="text-sm font-bold text-slate-800">상담사 종합 명부</h2>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider">
+                    <tr>
+                        <th class="px-4 py-3">ID / 성명</th>
+                        <th class="px-4 py-3">직급 (직책)</th>
+                        <th class="px-4 py-3">시스템 권한</th>
+                        <th class="px-4 py-3">연락처 / 이메일</th>
+                        <th class="px-4 py-3">전문 분야</th>
+                        <th class="px-4 py-3">총 연차 / 잔여</th>
+                        <th class="px-4 py-3">누적 상담</th>
+                        <th class="px-4 py-3 text-right">관리</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for c in counselors %}
+                    <tr class="hover:bg-slate-50/80 transition-colors">
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <span class="font-bold text-slate-900">{{ c.name }}</span>
+                            <span class="text-[11px] text-slate-400 block">@{{ c.username }}</span>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-slate-700 font-medium">
+                            {{ c.title }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <span class="px-2 py-0.5 rounded text-[11px] font-semibold 
+                                {% if c.role == 'DIRECTOR' %}bg-purple-100 text-purple-800
+                                {% elif c.role == 'SENIOR' %}bg-indigo-100 text-indigo-800
+                                {% else %}bg-slate-100 text-slate-700{% endif %}">
+                                {{ c.role }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-slate-600">
+                            <div>{{ c.phone }}</div>
+                            <div class="text-[11px] text-slate-400">{{ c.email }}</div>
+                        </td>
+                        <td class="px-4 py-3 text-slate-600 max-w-xs">
+                            {{ c.specialties or '-' }}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <span class="font-semibold text-slate-800">{{ c.annual_leave_total }}일</span>
+                            <span class="text-[11px] text-emerald-600 block">(잔여 {{ c.annual_leave_total - c.annual_leave_used }}일)</span>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap font-bold text-slate-800">
+                            {{ c.assigned_calls_count }}건
+                        </td>
+                        <td class="px-4 py-3 text-right whitespace-nowrap">
+                            <button onclick='openEditCounselorModal({{ c|tojson }})' class="px-2.5 py-1 text-xs text-indigo-600 hover:bg-indigo-50 rounded font-semibold transition-colors">
+                                수정
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 상담사 등록 / 수정 모달 -->
+<div id="counselor-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+            <h3 id="modal-counselor-title" class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <i data-lucide="user-cog" class="w-5 h-5 text-indigo-600"></i>
+                신규 상담사 등록
+            </h3>
+            <button type="button" onclick="closeModal('counselor-modal')" class="text-slate-400 hover:text-slate-600 text-lg">&times;</button>
+        </div>
+
+        <form id="counselor-form" onsubmit="submitCounselor(event)" class="mt-4 space-y-4 text-xs">
+            <input type="hidden" name="counselor_id" value="">
+
+            <div id="username-group">
+                <label class="block font-semibold text-slate-700 mb-1">로그인 아이디 <span class="text-rose-500">*</span></label>
+                <input type="text" name="username" required placeholder="영문/숫자 조합" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">비밀번호 (초기값 또는 변경 시 입력)</label>
+                <input type="password" name="password" placeholder="기본값: 1234" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">이름 <span class="text-rose-500">*</span></label>
+                    <input type="text" name="name" required placeholder="예: 김민지" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">직함/직급 표기 <span class="text-rose-500">*</span></label>
+                    <input type="text" name="title" required placeholder="예: 선임상담사, 팀장" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">시스템 권한 등급</label>
+                    <select name="role" class="w-full px-3 py-2 border border-slate-300 rounded-lg font-medium">
+                        <option value="COUNSELOR">일반 상담사 (COUNSELOR)</option>
+                        <option value="SENIOR">선임 상담사 (SENIOR)</option>
+                        <option value="DIRECTOR">소장 / 센터장 (DIRECTOR)</option>
+                        <option value="INTERN">인턴 / 수련생 (INTERN)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">부여 연차 일수</label>
+                    <input type="number" step="0.5" min="0" name="annual_leave_total" value="15.0" class="w-full px-3 py-2 border border-slate-300 rounded-lg font-bold">
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">연락처</label>
+                    <input type="text" name="phone" placeholder="010-0000-0000" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">이메일</label>
+                    <input type="email" name="email" placeholder="counselor@counsel.kr" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                </div>
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">전문 상담 분야 (콤마 구분)</label>
+                <input type="text" name="specialties" placeholder="예: 가정폭력상담, 위기개입, 법률구조, 아동학대" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+            </div>
+
+            <!-- 버튼 바 -->
+            <div class="flex justify-end gap-2 pt-3 border-t border-slate-200">
+                <button type="button" onclick="closeModal('counselor-modal')" class="px-4 py-2 border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-50">취소</button>
+                <button type="submit" class="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-lg shadow-sm">저장하기</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

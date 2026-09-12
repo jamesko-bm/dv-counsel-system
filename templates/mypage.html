@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}마이페이지 - 희망가정폭력상담소{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- 상단 헤더 -->
+    <div class="flex items-center gap-2">
+        <span class="w-2.5 h-6 bg-slate-700 rounded-full"></span>
+        <h1 class="text-xl font-bold text-slate-900">5. 상담사 마이페이지</h1>
+    </div>
+
+    <!-- 프로필 요약 카드 -->
+    <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-xs">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div class="flex items-center gap-4">
+                <div class="w-16 h-16 rounded-2xl bg-brand-600 text-white flex items-center justify-center font-black text-2xl shadow-md">
+                    {{ profile.name[:1] }}
+                </div>
+                <div>
+                    <div class="flex items-center gap-2">
+                        <h2 class="text-xl font-bold text-slate-900">{{ profile.name }}</h2>
+                        <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-brand-50 text-brand-700 border border-brand-200">
+                            {{ profile.title }} ({{ profile.role }})
+                        </span>
+                    </div>
+                    <p class="text-xs text-slate-500 mt-1">
+                        계정 ID: <strong class="text-slate-700 font-mono">@{{ profile.username }}</strong> · 센터 등록일: {{ profile.created_at[:10] }}
+                    </p>
+                    <p class="text-xs text-brand-600 mt-0.5 font-medium">
+                        전문분야: {{ profile.specialties or '미지정' }}
+                    </p>
+                </div>
+            </div>
+
+            <!-- 내 활동 지표 4종 -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
+                    <p class="text-[11px] text-slate-500">배정 상담</p>
+                    <p class="text-lg font-bold text-slate-900 mt-0.5">{{ my_stats.assigned_calls }}건</p>
+                </div>
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
+                    <p class="text-[11px] text-slate-500">조치 완료</p>
+                    <p class="text-lg font-bold text-emerald-600 mt-0.5">{{ my_stats.completed_calls }}건</p>
+                </div>
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
+                    <p class="text-[11px] text-slate-500">작성 일지</p>
+                    <p class="text-lg font-bold text-amber-600 mt-0.5">{{ my_stats.worklog_count }}회</p>
+                </div>
+                <div class="bg-slate-50 p-3 rounded-xl border border-slate-100 text-center">
+                    <p class="text-[11px] text-slate-500">잔여 연차</p>
+                    <p class="text-lg font-bold text-teal-600 mt-0.5">{{ my_stats.remaining_leave }}일</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2단 레이아웃: 프로필 정보 수정 / 내 활동 내역 탭 -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- 좌측: 내 개인정보 변경 폼 -->
+        <div class="lg:col-span-1 space-y-4">
+            <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
+                <h3 class="text-xs font-bold text-slate-800 mb-4 flex items-center gap-1.5">
+                    <i data-lucide="user-pen" class="w-4 h-4 text-brand-600"></i>
+                    내 정보 및 비밀번호 변경
+                </h3>
+
+                <form onsubmit="updateMyProfile(event, {{ profile.id }})" class="space-y-3.5 text-xs">
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">성명</label>
+                        <input type="text" name="name" value="{{ profile.name }}" required class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">연락처</label>
+                        <input type="text" name="phone" value="{{ profile.phone or '' }}" placeholder="010-0000-0000" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">이메일</label>
+                        <input type="email" name="email" value="{{ profile.email or '' }}" placeholder="email@counsel.kr" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                    </div>
+
+                    <div>
+                        <label class="block font-semibold text-slate-700 mb-1">전문 상담 분야</label>
+                        <input type="text" name="specialties" value="{{ profile.specialties or '' }}" placeholder="예: 가정폭력상담, 위기개입" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                    </div>
+
+                    <div class="pt-2 border-t border-slate-100">
+                        <label class="block font-semibold text-slate-700 mb-1">새 비밀번호 변경 (선택)</label>
+                        <input type="password" name="password" placeholder="변경할 경우에만 입력" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                        <span class="text-[11px] text-slate-400 mt-1 block">미입력 시 기존 비밀번호가 유지됩니다.</span>
+                    </div>
+
+                    <button type="submit" class="w-full py-2.5 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm transition-all text-center">
+                        정보 변경 저장
+                    </button>
+                </form>
+            </div>
+        </div>
+
+        <!-- 우측: 내 담당 상담 & 내 휴가 신청 내역 -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- 내 담당 상담 목록 -->
+            <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+                <div class="p-4 border-b border-slate-200 flex items-center justify-between">
+                    <h3 class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <i data-lucide="phone-outgoing" class="w-4 h-4 text-brand-600"></i>
+                        내가 담당한 전화상담 (최근 10건)
+                    </h3>
+                    <a href="/calls" class="text-xs text-brand-600 hover:underline">전체보기</a>
+                </div>
+
+                <div class="divide-y divide-slate-100 text-xs">
+                    {% for c in my_calls %}
+                    <div class="p-3.5 hover:bg-slate-50 transition-colors flex items-center justify-between">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-slate-900">#{{ c.id }} {{ c.client_name }}</span>
+                                <span class="text-slate-400">({{ c.perpetrator_relation }})</span>
+                                {% if c.risk_level == 'HIGH' %}
+                                <span class="px-1.5 py-0.2 rounded text-[10px] bg-rose-100 text-rose-700 font-bold">긴급HIGH</span>
+                                {% endif %}
+                                <span class="text-slate-400 text-[11px]">{{ c.call_date }}</span>
+                            </div>
+                            <p class="text-slate-600 mt-1 line-clamp-1 font-medium">{{ c.main_issues }}</p>
+                        </div>
+                        <span class="px-2 py-0.5 rounded text-[11px] font-semibold 
+                            {% if c.status == 'COMPLETED' %}bg-emerald-100 text-emerald-800
+                            {% elif c.status == 'IN_PROGRESS' %}bg-amber-100 text-amber-800
+                            {% else %}bg-slate-100 text-slate-600{% endif %}">
+                            {{ c.status }}
+                        </span>
+                    </div>
+                    {% else %}
+                    <p class="py-6 text-center text-slate-400 text-xs">담당 배정된 상담 기록이 없습니다.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- 내 휴가 신청 내역 -->
+            <div class="bg-white rounded-2xl border border-slate-200 overflow-hidden shadow-xs">
+                <div class="p-4 border-b border-slate-200 flex items-center justify-between">
+                    <h3 class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <i data-lucide="calendar" class="w-4 h-4 text-teal-600"></i>
+                        내 휴가 신청 및 결재 상태
+                    </h3>
+                    <a href="/leaves" class="text-xs text-teal-600 hover:underline">휴가 신청하기</a>
+                </div>
+
+                <div class="divide-y divide-slate-100 text-xs">
+                    {% for l in my_leaves %}
+                    <div class="p-3.5 hover:bg-slate-50 transition-colors flex items-center justify-between">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="font-bold text-slate-800">{{ l.leave_type }} ({{ l.days_count }}일)</span>
+                                <span class="text-slate-500">{{ l.start_date }} ~ {{ l.end_date }}</span>
+                            </div>
+                            <p class="text-slate-500 mt-0.5">사유: {{ l.reason }}</p>
+                            {% if l.reject_reason %}
+                            <p class="text-[11px] text-rose-600 mt-0.5 font-medium">반려사유: {{ l.reject_reason }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="flex items-center gap-3">
+                            {% if l.status == 'PENDING' %}
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-amber-100 text-amber-800">결재대기</span>
+                            <button onclick="cancelLeave({{ l.id }})" class="text-rose-600 hover:underline text-[11px]">취소</button>
+                            {% elif l.status == 'APPROVED' %}
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-100 text-emerald-800">승인완료</span>
+                            {% else %}
+                            <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-rose-100 text-rose-800">반려됨</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% else %}
+                    <p class="py-6 text-center text-slate-400 text-xs">신청한 휴가 내역이 없습니다.</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

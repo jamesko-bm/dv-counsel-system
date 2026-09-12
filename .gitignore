@@ -1,0 +1,20 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.env
+.env
+.venv
+env/
+venv/
+
+# SQLite 로컬 DB (Turso 사용 시 불필요, 로컬 테스트용)
+*.db
+*.db-journal
+
+# Vercel
+.vercel/
+
+# IDE
+.vscode/
+.idea/

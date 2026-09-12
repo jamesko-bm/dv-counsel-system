@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+
+{% block title %}업무일지 - 희망가정폭력상담소{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- 상단 헤더 (인쇄 시 숨김) -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 no-print">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="w-2.5 h-6 bg-amber-600 rounded-full"></span>
+                <h1 class="text-xl font-bold text-slate-900">4. 일일 업무일지</h1>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">
+                당일 진행된 전화상담 통계가 자동 반영되며, 센터 주요 업무, 위기개입, 인수인계를 통합 기록합니다.
+            </p>
+        </div>
+        <div class="flex items-center gap-2">
+            <button onclick="window.print()" class="px-3.5 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold rounded-xl text-xs flex items-center gap-1.5 shadow-2xs">
+                <i data-lucide="printer" class="w-4 h-4 text-slate-500"></i>
+                <span>일지 인쇄(출력)</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 2단 레이아웃: 좌측 이전 일지 목록 / 우측 해당일 일지 상세 및 작성폼 -->
+    <div class="grid grid-cols-1 lg:grid-cols-4 gap-6">
+        <!-- 좌측: 최근 업무일지 히스토리 (인쇄 시 숨김) -->
+        <div class="lg:col-span-1 space-y-3 no-print">
+            <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <i data-lucide="calendar" class="w-4 h-4 text-amber-600"></i>
+                        날짜 선택 / 일지 목록
+                    </h3>
+                </div>
+
+                <!-- 날짜 선택기 -->
+                <form method="GET" action="/worklogs" class="mb-4">
+                    <input type="date" name="selected_date" value="{{ target_date }}" onchange="this.form.submit()" class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg focus:ring-1 focus:ring-amber-500">
+                </form>
+
+                <div class="space-y-1.5 max-h-[520px] overflow-y-auto">
+                    {% for l in logs_list %}
+                    <a href="/worklogs?selected_date={{ l.log_date }}" class="block p-2.5 rounded-lg border text-xs transition-colors {% if l.log_date == target_date %}bg-amber-50 border-amber-300 text-amber-900 font-bold{% else %}bg-slate-50/50 border-slate-200 text-slate-700 hover:bg-slate-100{% endif %}">
+                        <div class="flex items-center justify-between">
+                            <span>{{ l.log_date }}</span>
+                            {% if l.is_confirmed %}
+                            <span class="text-[10px] px-1.5 py-0.2 bg-emerald-100 text-emerald-800 rounded font-semibold">확인완료</span>
+                            {% else %}
+                            <span class="text-[10px] px-1.5 py-0.2 bg-slate-200 text-slate-600 rounded">작성/검토</span>
+                            {% endif %}
+                        </div>
+                        <div class="flex items-center justify-between mt-1 text-[11px] font-normal text-slate-500">
+                            <span>작성: {{ l.counselor_name }}</span>
+                            <span>상담 {{ l.total_calls_count }}건</span>
+                        </div>
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- 우측: 당일 일지 뷰 및 편집 영역 -->
+        <div class="lg:col-span-3 space-y-6">
+            <!-- 인쇄 전용 헤더 (화면에서는 인쇄 시에만 보임) -->
+            <div class="hidden print:block text-center border-b-2 border-slate-800 pb-4 mb-6">
+                <h1 class="text-2xl font-black">가정폭력상담소 일일 업무일지</h1>
+                <p class="text-xs text-slate-600 mt-1">일자: {{ target_date }} | 작성자: {{ current_log.counselor_name if current_log else user.name }}</p>
+            </div>
+
+            <!-- 당일 자동 집계 요약 현황 바 -->
+            <div class="bg-amber-500/10 border border-amber-200 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center font-bold">
+                        <i data-lucide="file-check" class="w-5 h-5"></i>
+                    </div>
+                    <div>
+                        <h2 class="text-sm font-bold text-slate-900">
+                            {{ target_date }} 일일 업무일지
+                        </h2>
+                        <p class="text-xs text-slate-600">
+                            작성자: <span class="font-semibold">{{ current_log.counselor_name if current_log else user.name }}</span>
+                            {% if current_log and current_log.is_confirmed %}
+                            · <span class="text-emerald-700 font-bold">센터장 검토 확인 완료 ({{ current_log.approver_name }})</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <div class="px-3 py-1.5 bg-white rounded-lg border border-amber-200 text-xs">
+                        <span class="text-slate-500">당일 전화상담:</span>
+                        <strong class="text-slate-900 ml-1">{{ day_stats.total_calls }}건</strong>
+                    </div>
+                    <div class="px-3 py-1.5 bg-white rounded-lg border border-rose-200 text-xs">
+                        <span class="text-rose-600">긴급 고위험:</span>
+                        <strong class="text-rose-700 ml-1">{{ day_stats.high_risk_calls }}건</strong>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 당일 접수된 전화상담 요약 내역 -->
+            <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
+                <h3 class="text-xs font-bold text-slate-800 mb-3 flex items-center gap-2">
+                    <i data-lucide="phone-incoming" class="w-4 h-4 text-brand-600"></i>
+                    당일({{ target_date }}) 접수된 상담 목록 (자동 연동)
+                </h3>
+                
+                <div class="divide-y divide-slate-100 text-xs">
+                    {% for call in day_calls %}
+                    <div class="py-2.5 flex items-center justify-between gap-4">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            <span class="font-bold text-slate-800">#{{ call.id }}</span>
+                            <span class="text-slate-500">{{ call.call_date[11:] }}</span>
+                            <span class="font-semibold text-slate-900">{{ call.client_name }}</span>
+                            <span class="text-slate-400">({{ call.perpetrator_relation }})</span>
+                            <span class="text-[11px] text-slate-600 font-medium">[{{ call.violence_types }}]</span>
+                            {% if call.risk_level == 'HIGH' %}
+                            <span class="px-1.5 py-0.2 rounded text-[10px] bg-rose-100 text-rose-700 font-bold">긴급HIGH</span>
+                            {% endif %}
+                        </div>
+                        <span class="text-slate-500 font-medium shrink-0">담당: {{ call.counselor_name }}</span>
+                    </div>
+                    {% else %}
+                    <p class="py-3 text-slate-400 text-center">해당 일자에 접수된 전화 상담이 없습니다.</p>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- 업무일지 작성 / 수정 폼 -->
+            <form onsubmit="submitWorkLog(event)" class="bg-white rounded-xl border border-slate-200 p-5 shadow-xs space-y-5 text-xs">
+                <input type="hidden" name="log_date" value="{{ target_date }}">
+
+                <!-- 1. 상담 및 내담자 지원 업무 -->
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
+                        <span class="w-1.5 h-3 bg-brand-600 rounded-full"></span>
+                        1. 상담 및 피해자 지원 업무 내역
+                    </label>
+                    <textarea name="counseling_summary" rows="4" placeholder="당일 진행한 주요 전화상담, 대면상담, 피해자 심리치료 및 안심 모니터링 내역을 작성하세요." class="w-full px-3 py-2.5 border border-slate-300 rounded-xl leading-relaxed">{{ current_log.counseling_summary if current_log else '' }}</textarea>
+                </div>
+
+                <!-- 2. 센터 행정 및 대외 협력 -->
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
+                        <span class="w-1.5 h-3 bg-brand-600 rounded-full"></span>
+                        2. 센터 일반 행정 및 대외 기관 협력 업무
+                    </label>
+                    <textarea name="admin_tasks" rows="3" placeholder="행정 서류, 유관기관(경찰서, 지자체, 법률공단) 회의, 후원 및 시설 관리 등 작성" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl leading-relaxed">{{ current_log.admin_tasks if current_log else '' }}</textarea>
+                </div>
+
+                <!-- 3. 위기 개입 및 특이 사건 -->
+                <div>
+                    <label class="block font-bold text-rose-700 mb-1.5 flex items-center gap-1.5">
+                        <span class="w-1.5 h-3 bg-rose-600 rounded-full"></span>
+                        3. 위기 개입 및 특이사항 (긴급 쉼터 연계, 경찰 동행, 신변보호, 의료지원)
+                    </label>
+                    <textarea name="crisis_cases" rows="3" placeholder="즉각적인 신변 보호가 필요했던 사건, 쉼터 입소 진행 내역, 고위험 긴급 개입 상황을 상세히 기록하세요." class="w-full px-3 py-2.5 border border-rose-200 bg-rose-50/20 rounded-xl leading-relaxed text-slate-800">{{ current_log.crisis_cases if current_log else '' }}</textarea>
+                </div>
+
+                <!-- 4. 익일 계획 및 인수인계 -->
+                <div>
+                    <label class="block font-bold text-slate-800 mb-1.5 flex items-center gap-1.5">
+                        <span class="w-1.5 h-3 bg-brand-600 rounded-full"></span>
+                        4. 익일 주요 계획 및 인수인계 사항
+                    </label>
+                    <textarea name="tomorrow_plan" rows="3" placeholder="내일 예정된 주요 상담, 방문 약속, 미종결 사건 후속 조치 및 동료 상담원 인수인계 사항" class="w-full px-3 py-2.5 border border-slate-300 rounded-xl leading-relaxed">{{ current_log.tomorrow_plan if current_log else '' }}</textarea>
+                </div>
+
+                <!-- 저장 버튼 (인쇄 시 숨김) -->
+                <div class="flex justify-end gap-2 pt-2 border-t border-slate-200 no-print">
+                    <button type="submit" class="px-5 py-2.5 bg-amber-600 hover:bg-amber-700 text-white font-semibold rounded-xl shadow-sm transition-all flex items-center gap-1.5">
+                        <i data-lucide="save" class="w-4 h-4"></i>
+                        <span>업무일지 저장하기</span>
+                    </button>
+                </div>
+            </form>
+
+            <!-- 센터장/소장 결재 의견 및 확인 영역 -->
+            <div class="bg-white rounded-xl border border-slate-200 p-5 shadow-xs">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                        <i data-lucide="check-circle-2" class="w-4 h-4 text-emerald-600"></i>
+                        센터장 검토 확인 및 피드백
+                    </h3>
+                    {% if user.role in ['DIRECTOR', 'SENIOR'] %}
+                    <button type="button" onclick="submitWorkLogFeedback('{{ target_date }}')" class="px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg text-xs no-print">
+                        확인/코멘트 등록
+                    </button>
+                    {% endif %}
+                </div>
+
+                {% if current_log and current_log.feedback %}
+                <div class="p-3.5 bg-emerald-50/50 rounded-xl border border-emerald-200 text-xs text-slate-800">
+                    <p class="font-medium leading-relaxed">{{ current_log.feedback }}</p>
+                    <div class="mt-2 text-[11px] text-slate-500 flex items-center gap-2">
+                        <span>확인자: <strong>{{ current_log.approver_name }}</strong></span>
+                    </div>
+                </div>
+                {% else %}
+                <p class="text-xs text-slate-400 py-3 text-center">아직 등록된 센터장 확인 코멘트가 없습니다.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

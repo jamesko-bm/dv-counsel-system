@@ -1,0 +1,487 @@
+{% extends "base.html" %}
+
+{% block title %}전화 상담기록 - 희망가정폭력상담소{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- 상단 헤더 & 컨트롤 바 -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="w-2.5 h-6 bg-brand-600 rounded-full"></span>
+                <h1 class="text-xl font-bold text-slate-900">1. 전화 상담기록 관리</h1>
+            </div>
+            <p class="text-xs text-slate-500 mt-1">
+                가정폭력 전화 접수 내역, 위험도 분류, 폭력 유형 및 긴급 조치 이력을 기록·관리합니다.
+            </p>
+        </div>
+        <div class="flex items-center gap-2 flex-wrap">
+            <button onclick="openModal('ai-transcript-modal')" class="px-3.5 py-2 bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200 font-semibold rounded-xl text-xs flex items-center gap-1.5 shadow-2xs transition-all">
+                <i data-lucide="sparkles" class="w-4 h-4 text-purple-600"></i>
+                <span>통화 녹취/AI 자동 작성</span>
+            </button>
+            <a href="/api/calls/export/csv" class="px-3.5 py-2 bg-white text-slate-700 hover:bg-slate-50 border border-slate-300 font-semibold rounded-xl text-xs flex items-center gap-1.5 shadow-2xs transition-all">
+                <i data-lucide="download" class="w-4 h-4 text-slate-500"></i>
+                <span>CSV 엑셀</span>
+            </a>
+            <button onclick="openNewCallModal()" class="px-4 py-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-xl text-xs flex items-center gap-1.5 shadow-sm transition-all">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>신규 상담 등록</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- 상담 요약 통계 배너 -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div class="bg-white p-4 rounded-xl border border-slate-200">
+            <p class="text-xs text-slate-500">조회된 상담</p>
+            <p class="text-xl font-bold text-slate-800 mt-0.5">{{ summary.total }}<span class="text-xs font-normal ml-1">건</span></p>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-rose-200 bg-rose-50/20">
+            <p class="text-xs text-rose-600 font-medium">고위험군 (HIGH)</p>
+            <p class="text-xl font-bold text-rose-700 mt-0.5">{{ summary.high_risk }}<span class="text-xs font-normal ml-1">건</span></p>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-amber-200 bg-amber-50/20">
+            <p class="text-xs text-amber-600 font-medium">진행 중 (사례관리)</p>
+            <p class="text-xl font-bold text-amber-700 mt-0.5">{{ summary.in_progress }}<span class="text-xs font-normal ml-1">건</span></p>
+        </div>
+        <div class="bg-white p-4 rounded-xl border border-emerald-200 bg-emerald-50/20">
+            <p class="text-xs text-emerald-600 font-medium">조치/종결 완료</p>
+            <p class="text-xl font-bold text-emerald-700 mt-0.5">{{ summary.completed }}<span class="text-xs font-normal ml-1">건</span></p>
+        </div>
+    </div>
+
+    <!-- 검색 및 필터 바 -->
+    <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-xs">
+        <form method="GET" action="/calls" class="flex flex-col md:flex-row items-center gap-3">
+            <div class="relative flex-1 w-full">
+                <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+                <input type="text" name="search" value="{{ search }}" placeholder="내담자명, 주요 내용, 전화번호, 호소 사항 검색..." class="w-full pl-10 pr-4 py-2 text-xs border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-500">
+            </div>
+
+            <div class="flex items-center gap-2 w-full md:w-auto">
+                <select name="risk" class="text-xs border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-1 focus:ring-brand-500">
+                    <option value="ALL" {% if risk == 'ALL' %}selected{% endif %}>모든 위험등급</option>
+                    <option value="HIGH" {% if risk == 'HIGH' %}selected{% endif %}>긴급위험 (HIGH)</option>
+                    <option value="MEDIUM" {% if risk == 'MEDIUM' %}selected{% endif %}>주의 (MEDIUM)</option>
+                    <option value="LOW" {% if risk == 'LOW' %}selected{% endif %}>일반 (LOW)</option>
+                </select>
+
+                <select name="status_filter" class="text-xs border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-1 focus:ring-brand-500">
+                    <option value="ALL" {% if status_filter == 'ALL' %}selected{% endif %}>모든 진행상태</option>
+                    <option value="RECEIVED" {% if status_filter == 'RECEIVED' %}selected{% endif %}>접수완료</option>
+                    <option value="IN_PROGRESS" {% if status_filter == 'IN_PROGRESS' %}selected{% endif %}>진행중</option>
+                    <option value="FOLLOW_UP" {% if status_filter == 'FOLLOW_UP' %}selected{% endif %}>추후상담예정</option>
+                    <option value="COMPLETED" {% if status_filter == 'COMPLETED' %}selected{% endif %}>조치완료</option>
+                </select>
+
+                <button type="submit" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-semibold rounded-lg text-xs transition-colors shrink-0">
+                    필터 적용
+                </button>
+                {% if search or risk != 'ALL' or status_filter != 'ALL' %}
+                <a href="/calls" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs transition-colors shrink-0">초기화</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- 상담 기록 목록 테이블 -->
+    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden shadow-xs">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+                <thead class="bg-slate-50 border-b border-slate-200 text-slate-600 font-semibold uppercase tracking-wider">
+                    <tr>
+                        <th class="px-4 py-3">접수번호 / 일시</th>
+                        <th class="px-4 py-3">내담자 정보</th>
+                        <th class="px-4 py-3">가해자 관계</th>
+                        <th class="px-4 py-3">폭력 피해 유형</th>
+                        <th class="px-4 py-3">위험등급</th>
+                        <th class="px-4 py-3">연계/조치 사항</th>
+                        <th class="px-4 py-3">상태</th>
+                        <th class="px-4 py-3">담당 상담사</th>
+                        <th class="px-4 py-3 text-right">관리</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100">
+                    {% for c in calls %}
+                    <tr class="hover:bg-slate-50/80 transition-colors cursor-pointer" onclick="openCallDetail({{ c.id }})">
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <span class="font-bold text-slate-900">#{{ c.id }}</span>
+                            <p class="text-[11px] text-slate-400 mt-0.5">{{ c.call_date }}</p>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex items-center gap-1.5">
+                                <span class="font-semibold text-slate-800">{{ c.client_name }}</span>
+                                {% if c.is_anonymous %}
+                                <span class="text-[10px] px-1.5 py-0.2 bg-slate-100 text-slate-500 rounded border border-slate-200">익명</span>
+                                {% endif %}
+                            </div>
+                            <p class="text-[11px] text-slate-500 mt-0.5">
+                                {{ c.client_gender }} · {{ c.client_age_group or '-' }} · {{ c.client_region or '지역미상' }}
+                            </p>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            <span class="px-2 py-0.5 rounded bg-slate-100 text-slate-700 font-medium">
+                                {{ c.perpetrator_relation }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3">
+                            <div class="flex flex-wrap gap-1 max-w-xs">
+                                {% for v in (c.violence_types or '').split(',') %}
+                                <span class="px-1.5 py-0.5 rounded text-[11px] bg-rose-50 text-rose-700 border border-rose-200/60 font-medium">
+                                    {{ v.strip() }}
+                                </span>
+                                {% endfor %}
+                            </div>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            {% if c.risk_level == 'HIGH' %}
+                            <span class="px-2 py-0.5 text-[11px] font-bold rounded-full bg-rose-100 text-rose-700 border border-rose-300">
+                                긴급 (HIGH)
+                            </span>
+                            {% elif c.risk_level == 'MEDIUM' %}
+                            <span class="px-2 py-0.5 text-[11px] font-semibold rounded-full bg-amber-100 text-amber-700 border border-amber-300">
+                                주의 (MEDIUM)
+                            </span>
+                            {% else %}
+                            <span class="px-2 py-0.5 text-[11px] font-medium rounded-full bg-emerald-100 text-emerald-700 border border-emerald-300">
+                                일반 (LOW)
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3">
+                            <span class="text-[11px] text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100 line-clamp-1">
+                                {{ c.action_types or '일반상담' }}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap">
+                            {% if c.status == 'RECEIVED' %}
+                            <span class="text-slate-600 font-medium">접수</span>
+                            {% elif c.status == 'IN_PROGRESS' %}
+                            <span class="text-amber-600 font-semibold">진행중</span>
+                            {% elif c.status == 'COMPLETED' %}
+                            <span class="text-emerald-600 font-semibold">조치완료</span>
+                            {% else %}
+                            <span class="text-blue-600 font-medium">추후상담</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-slate-700 font-medium">
+                            {{ c.counselor_name or '미배정' }}
+                        </td>
+                        <td class="px-4 py-3 text-right whitespace-nowrap" onclick="event.stopPropagation()">
+                            <button onclick="openCallDetail({{ c.id }})" class="p-1 text-slate-400 hover:text-brand-600 transition-colors" title="상세보기">
+                                <i data-lucide="eye" class="w-4 h-4"></i>
+                            </button>
+                        </td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="9" class="px-4 py-12 text-center text-slate-400">
+                            검색 조건에 해당하는 전화 상담 기록이 없습니다.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- 1. 신규 등록 / 수정 모달 -->
+<div id="call-log-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 my-8">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+            <h3 id="modal-call-title" class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <i data-lucide="phone-call" class="w-5 h-5 text-brand-600"></i>
+                신규 전화상담 접수/기록
+            </h3>
+            <button type="button" onclick="closeModal('call-log-modal')" class="text-slate-400 hover:text-slate-600 text-lg">&times;</button>
+        </div>
+
+        <form id="call-log-form" onsubmit="submitCallLog(event)" class="mt-4 space-y-4 text-xs">
+            <input type="hidden" name="call_id" value="">
+
+            <!-- 일시 & 담당자 -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">상담 일시</label>
+                    <input type="text" name="call_date" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-brand-500">
+                </div>
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">담당 상담사</label>
+                    <select name="counselor_id" class="w-full px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-brand-500">
+                        {% for u in all_users %}
+                        <option value="{{ u.id }}" {% if user and user.id == u.id %}selected{% endif %}>
+                            {{ u.name }} ({{ u.title }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <!-- 내담자 기본 정보 & 익명 여부 -->
+            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
+                <div class="flex items-center justify-between">
+                    <span class="font-bold text-slate-800 text-xs">내담자 인적사항 (비밀보장)</span>
+                    <label class="flex items-center gap-1.5 cursor-pointer text-xs font-semibold text-brand-700">
+                        <input type="checkbox" name="is_anonymous" class="rounded text-brand-600 focus:ring-brand-500">
+                        익명 접수 (가명/익명 처리)
+                    </label>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-4 gap-2">
+                    <div>
+                        <label class="block text-slate-600 mb-1">내담자명 / 가명</label>
+                        <input type="text" name="client_name" required placeholder="예: 김OO, 익명" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 mb-1">성별</label>
+                        <select name="client_gender" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                            <option value="여성">여성</option>
+                            <option value="남성">남성</option>
+                            <option value="기타">기타</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 mb-1">연령대</label>
+                        <select name="client_age_group" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                            <option value="10대이하">10대 이하</option>
+                            <option value="20대">20대</option>
+                            <option value="30대" selected>30대</option>
+                            <option value="40대">40대</option>
+                            <option value="50대">50대</option>
+                            <option value="60대이상">60대 이상</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 mb-1">안심 연락처</label>
+                        <input type="text" name="client_phone" placeholder="010-0000-0000" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    <div>
+                        <label class="block text-slate-600 mb-1">거주 지역</label>
+                        <input type="text" name="client_region" placeholder="예: 서울 강서구, 경기 부천시" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                    </div>
+                    <div>
+                        <label class="block text-slate-600 mb-1">가해자와의 관계</label>
+                        <select name="perpetrator_relation" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                            <option value="배우자" selected>배우자 (법률혼)</option>
+                            <option value="사실혼">사실혼 관계</option>
+                            <option value="전배우자">전 배우자 (이혼/별거)</option>
+                            <option value="교제상대">교제상대 (데이트/연인)</option>
+                            <option value="직계가족">직계가족 (부모/자녀)</option>
+                            <option value="친인척">친인척/동거인</option>
+                            <option value="기타">기타</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 폭력 유형 및 위험도 -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1.5">폭력 피해 유형 (복수 선택)</label>
+                    <div class="grid grid-cols-2 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs">
+                        <label class="flex items-center gap-1.5"><input type="checkbox" name="violence_types" value="신체적 폭력" class="rounded text-rose-600"> 신체적 폭력</label>
+                        <label class="flex items-center gap-1.5"><input type="checkbox" name="violence_types" value="정서/언어적 폭력" class="rounded text-rose-600"> 정서/언어적 폭력</label>
+                        <label class="flex items-center gap-1.5"><input type="checkbox" name="violence_types" value="경제적 폭력" class="rounded text-rose-600"> 경제적 폭력</label>
+                        <label class="flex items-center gap-1.5"><input type="checkbox" name="violence_types" value="성적 폭력" class="rounded text-rose-600"> 성적 폭력</label>
+                        <label class="flex items-center gap-1.5"><input type="checkbox" name="violence_types" value="통제/방임" class="rounded text-rose-600"> 통제/방임/스토킹</label>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1.5">위험 등급 평가</label>
+                    <select name="risk_level" class="w-full px-3 py-2 border border-slate-300 rounded-lg font-bold">
+                        <option value="HIGH" class="text-rose-600">긴급위험 (HIGH) - 흉기, 중상해, 살해협박, 즉각분리 필요</option>
+                        <option value="MEDIUM" selected class="text-amber-600">주의 (MEDIUM) - 반복적 폭행/폭언, 심리적 불안정</option>
+                        <option value="LOW" class="text-emerald-600">일반 (LOW) - 갈등 호소, 정보 및 법률 문의</option>
+                    </select>
+
+                    <label class="block font-semibold text-slate-700 mt-2 mb-1">상담 진행 상태</label>
+                    <select name="status" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+                        <option value="RECEIVED">접수완료</option>
+                        <option value="IN_PROGRESS" selected>진행중 (사례관리)</option>
+                        <option value="FOLLOW_UP">추후상담 예정</option>
+                        <option value="COMPLETED">조치완료/종결</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 과거 이력 및 주요 호소 -->
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">폭력 지속기간 및 경찰 신고 등 과거 이력</label>
+                <input type="text" name="incident_history" placeholder="예: 3년간 상습 폭행, 112 신고 2회, 임시조치 이력 등" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">주요 호소 요약</label>
+                <input type="text" name="main_issues" placeholder="한 줄 요약 (예: 남편의 지속적 신체 폭행에 따른 긴급 피신 및 쉼터 입소 문의)" class="w-full px-3 py-2 border border-slate-300 rounded-lg">
+            </div>
+
+            <!-- 상세 상담 내용 -->
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">상담 상세 내용 <span class="text-rose-500">*</span></label>
+                <textarea name="counseling_content" rows="4" required placeholder="내담자의 진술 내용, 현재 신체/심리 상태, 위험 요인 상세 등을 기록하세요." class="w-full px-3 py-2 border border-slate-300 rounded-lg leading-relaxed"></textarea>
+            </div>
+
+            <!-- 연계 및 조치 사항 -->
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1.5">연계 및 조치 사항 (복수 선택)</label>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs">
+                    <label class="flex items-center gap-1.5"><input type="checkbox" name="action_types" value="긴급피난/쉼터" class="rounded text-indigo-600"> 긴급피난/쉼터</label>
+                    <label class="flex items-center gap-1.5"><input type="checkbox" name="action_types" value="경찰연계" class="rounded text-indigo-600"> 경찰연계(APO)</label>
+                    <label class="flex items-center gap-1.5"><input type="checkbox" name="action_types" value="법률구조안내" class="rounded text-indigo-600"> 법률구조안내</label>
+                    <label class="flex items-center gap-1.5"><input type="checkbox" name="action_types" value="의료지원" class="rounded text-indigo-600"> 의료지원/치료</label>
+                    <label class="flex items-center gap-1.5"><input type="checkbox" name="action_types" value="심리상담예약" class="rounded text-indigo-600"> 심리상담예약</label>
+                    <label class="flex items-center gap-1.5"><input type="checkbox" name="action_types" value="신변보호안내" class="rounded text-indigo-600"> 신변보호안내</label>
+                    <label class="flex items-center gap-1.5"><input type="checkbox" name="action_types" value="사례관리" class="rounded text-indigo-600"> 지속 사례관리</label>
+                </div>
+            </div>
+
+            <!-- 버튼 바 -->
+            <div class="flex justify-end gap-2 pt-3 border-t border-slate-200">
+                <button type="button" onclick="closeModal('call-log-modal')" class="px-4 py-2 border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-50">취소</button>
+                <button type="submit" class="px-5 py-2 bg-brand-600 hover:bg-brand-700 text-white font-semibold rounded-lg shadow-sm">저장하기</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- 2. 상담 기록 상세 보기 모달 -->
+<div id="call-detail-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-2xl w-full p-6 shadow-2xl border border-slate-200 my-8">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+            <div class="flex items-center gap-2">
+                <span id="detail-id" class="text-sm font-bold text-slate-400">#1</span>
+                <h3 class="text-base font-bold text-slate-900">상담 기록 상세 정보</h3>
+            </div>
+            <button type="button" onclick="closeModal('call-detail-modal')" class="text-slate-400 hover:text-slate-600 text-lg">&times;</button>
+        </div>
+
+        <div class="mt-4 space-y-4 text-xs">
+            <!-- 요약 헤더 -->
+            <div class="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+                <div>
+                    <div class="flex items-center gap-2">
+                        <span id="detail-client-name" class="text-sm font-bold text-slate-900">이지혜</span>
+                        <span id="detail-gender-age" class="text-slate-500">여성 / 30대</span>
+                        <span id="detail-region" class="text-slate-500">서울 강서구</span>
+                    </div>
+                    <p class="text-slate-400 mt-1">연락처: <span id="detail-phone" class="text-slate-700 font-medium">010-0000-0000</span></p>
+                </div>
+                <div class="flex flex-col items-end gap-1">
+                    <span id="detail-risk" class="px-2.5 py-1 text-xs font-semibold rounded-full bg-rose-100 text-rose-700">긴급(HIGH)</span>
+                    <span id="detail-status" class="text-slate-500 font-medium">진행중</span>
+                </div>
+            </div>
+
+            <!-- 기본 정보 그리드 -->
+            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 p-3 bg-white rounded-xl border border-slate-200">
+                <div>
+                    <span class="text-slate-400 block mb-0.5">상담 일시</span>
+                    <span id="detail-date" class="font-semibold text-slate-800">2026-09-05 10:00</span>
+                </div>
+                <div>
+                    <span class="text-slate-400 block mb-0.5">가해자와의 관계</span>
+                    <span id="detail-relation" class="font-semibold text-slate-800">배우자</span>
+                </div>
+                <div>
+                    <span class="text-slate-400 block mb-0.5">담당 상담사</span>
+                    <span id="detail-counselor" class="font-semibold text-slate-800">박서윤</span>
+                </div>
+            </div>
+
+            <!-- 폭력 피해 유형 -->
+            <div>
+                <span class="font-bold text-slate-700 block mb-1.5">폭력 피해 유형</span>
+                <div id="detail-violence" class="flex flex-wrap gap-1"></div>
+            </div>
+
+            <!-- 조치 및 연계 -->
+            <div>
+                <span class="font-bold text-slate-700 block mb-1.5">조치 및 연계 사항</span>
+                <div id="detail-actions" class="flex flex-wrap gap-1"></div>
+            </div>
+
+            <!-- 과거 이력 -->
+            <div>
+                <span class="font-bold text-slate-700 block mb-1">폭력 지속기간 및 경찰 신고 등 과거 이력</span>
+                <p id="detail-history" class="p-2.5 bg-slate-50 rounded-lg text-slate-700 border border-slate-200 leading-relaxed"></p>
+            </div>
+
+            <!-- 주요 호소 -->
+            <div>
+                <span class="font-bold text-slate-700 block mb-1">주요 호소 요약</span>
+                <p id="detail-issues" class="p-2.5 bg-slate-50 rounded-lg text-slate-800 font-medium border border-slate-200"></p>
+            </div>
+
+            <!-- 상담 상세 내용 -->
+            <div>
+                <span class="font-bold text-slate-700 block mb-1">상담 및 개입 상세 내용</span>
+                <div id="detail-content" class="p-3.5 bg-slate-50 rounded-lg text-slate-800 border border-slate-200 leading-relaxed whitespace-pre-wrap max-h-48 overflow-y-auto"></div>
+            </div>
+
+            <!-- 하단 버튼 -->
+            <div class="flex justify-between items-center pt-3 border-t border-slate-200">
+                <button id="detail-delete-btn" type="button" class="px-3 py-2 text-rose-600 hover:bg-rose-50 rounded-lg transition-colors font-semibold">
+                    기록 삭제
+                </button>
+                <div class="flex gap-2">
+                    <button id="detail-edit-btn" type="button" class="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg font-semibold">
+                        기록 수정
+                    </button>
+                    <button type="button" onclick="closeModal('call-detail-modal')" class="px-4 py-2 border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-50">
+                        닫기
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 3. 통화 녹취록(Tyro/Tiro/AI) 자동 작성 모달 -->
+<div id="ai-transcript-modal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+    <div class="bg-white rounded-2xl max-w-xl w-full p-6 shadow-2xl border border-slate-200">
+        <div class="flex items-center justify-between pb-3 border-b border-slate-200">
+            <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                <i data-lucide="sparkles" class="w-5 h-5 text-purple-600"></i>
+                전화 통화 녹취/AI 자동 상담일지 생성
+            </h3>
+            <button type="button" onclick="closeModal('ai-transcript-modal')" class="text-slate-400 hover:text-slate-600 text-lg">&times;</button>
+        </div>
+
+        <div class="mt-4 space-y-4 text-xs">
+            <p class="text-slate-600 leading-relaxed">
+                전화 통화 내용(또는 <strong>Tiro</strong>, 음성 전사 도구에서 추출된 텍스트)을 붙여넣으면, AI가 <strong>가해자 관계, 폭력 유형, 위험 등급, 호소 내용 및 권장 조치</strong>를 자동으로 분석하여 상담일지를 완성합니다.
+            </p>
+
+            <!-- 샘플 테스트 버튼 -->
+            <div class="flex items-center gap-2">
+                <span class="text-slate-400">빠른 테스트 샘플:</span>
+                <button type="button" onclick="loadSampleTranscript(1)" class="px-2 py-1 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded border border-rose-200 font-medium">
+                    1. 긴급 흉기위협 피난 샘플
+                </button>
+                <button type="button" onclick="loadSampleTranscript(2)" class="px-2 py-1 bg-amber-50 text-amber-700 hover:bg-amber-100 rounded border border-amber-200 font-medium">
+                    2. 데이트폭력 스토킹 샘플
+                </button>
+            </div>
+
+            <div>
+                <label class="block font-semibold text-slate-700 mb-1">통화 전사 내용 (대화 전문 또는 메모)</label>
+                <textarea id="ai-transcript-input" rows="7" placeholder="상담사와 내담자의 전화 대화 내용을 입력하거나 붙여넣으세요..." class="w-full px-3 py-2.5 border border-slate-300 rounded-xl leading-relaxed font-sans"></textarea>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-3 border-t border-slate-200">
+                <button type="button" onclick="closeModal('ai-transcript-modal')" class="px-4 py-2 border border-slate-300 text-slate-600 rounded-lg hover:bg-slate-50">취소</button>
+                <button type="button" onclick="processAiTranscript()" class="px-5 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow-sm flex items-center gap-1.5">
+                    <i data-lucide="sparkles" class="w-4 h-4"></i>
+                    <span>AI 자동 분석 및 입력</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
